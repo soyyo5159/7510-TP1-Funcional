@@ -1,4 +1,4 @@
-(comment
+
 
 (ns parent-database-test
   (:require [clojure.test :refer :all]
@@ -56,4 +56,3 @@
   (testing "empty should be nil"
     (is (= (evaluate-query parent-database "")
            nil))))
-)

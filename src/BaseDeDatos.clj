@@ -1,11 +1,13 @@
 (ns BaseDeDatos
     (:require 
-        [clojure.string :as str]
-        [Premisa]
-        [Inferencia]
-        [Regla]
+        [Cumplible :as c]
+        [Coleccion :refer :all]
+        [Verificador :refer :all]
     ))
 
+(defprotocol BaseDeDatos
+    (bd-verifica? [yo otro-cumplible])    
+)
 
 (defn- verifica-pregunta? [cumplible anteriores pregunta]
     (let [
@@ -14,15 +16,23 @@
     ]
         (if (some #{pregunta} anteriores)
             false
-            (cumple? cumplible cumplir)
+            (c/cumple? cumplible cumplir)
         )
             
     )
 )
 
-(defrecord RecordBaseDeDatos [cumplible] 
+(defrecord ^:private RecordBaseDeDatos [cumplible] 
     BaseDeDatos
-    (verifica? [yo otro-cumplible] 
-        (cumple? otro-cumplible (partial verifica-pregunta? cumplible (list)))
+    (bd-verifica? [yo otro-cumplible]
+        {:pre [satisfies? c/Cumplible otro-cumplible]}
+        (c/cumple? otro-cumplible (partial verifica-pregunta? cumplible (list)))
     )
+)
+
+(defn base-de-datos [ & componentes]
+    {:pre [
+        (every? (partial satisfies? Verificador) componentes)
+    ]}
+    (RecordBaseDeDatos. (apply disyuncion componentes))
 )

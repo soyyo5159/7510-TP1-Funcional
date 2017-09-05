@@ -12,9 +12,6 @@
           lifn (nuevoLifn 1 2 3)
           f (funcion lifn)
         ]
-        (gritar 1 2 )
-        (gritar 3 4 )
-        (gritar 598 78 )
         (is (= (f) 1))
         (is (not (completa? lifn)))
         (is (= (f) 2))

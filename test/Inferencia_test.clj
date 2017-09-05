@@ -1,80 +1,86 @@
+
 (ns Inferencia-test
     (:require [clojure.test :refer :all]
+    
         [Inferencia :refer :all]
-      [Regla :refer :all]
-      [Premisa :as p]
-      [Espia :refer :all]
+        [Premisa :refer :all]
+        [Verificador :refer :all]
+        [Coleccion :refer :all]
     )
 )
 
-(deftest un-miembro
-    (testing "un solo miembro "
-      (let [
-          inferencia (parsear "cumple(X):-hace(X)")
-          espia (nuevoEspia)
-          preguntar (fn [x] true)
-          preguntarS (envuelta espia preguntar "q")
-
-          ]
-          (is (= (nombre inferencia) "cumple"))
-          (is (= (argumentos inferencia) (list "X")))
-          (is (= (aridad inferencia) 1))
-          (is (verifica? inferencia (p/parsear "cumple(jeronimo)") preguntarS))
-          (is (= (registro? espia) (list
-            "q" (p/parsear "hace(jeronimo)")
-            )))
-      )
-    )
+(defn siempretrue [& args] true)
+(defn siemprefalse [& args] false)
+(defn jerosi-juanno [p]
+    (= p (premisa "amigo" "jero"))
+)
+(defn jerojuan [p]
+    (some #{p} (list
+        (premisa "amigo" "jero")
+        (premisa "amigo" "juan")
+    ))
 )
 
-(deftest dos-miembros
-    (testing "Inferencia con dos miembros "
-      (let [
-          inferencia (parsear "cumple(X):-hace(X);hizo(X)")
-          espia (nuevoEspia)
-          preguntar (fn [x] true)
-          preguntarS (envuelta espia preguntar "q")
-
-          ]
-          (is (= (nombre inferencia) "cumple"))
-          (is (= (argumentos inferencia) (list "X")))
-          (is (= (aridad inferencia) 1))
-          (is (verifica? inferencia (p/parsear "cumple(jeronimo)") preguntarS))
-          (is (= (registro? espia) (list
-            "q" (p/parsear "hace(jeronimo)")
-            "q" (p/parsear "hizo(jeronimo)")
-            )))
-      )
+(deftest inferencia-verifica
+    (let [
+        amigos-conjuntos (inferencia (premisa "amigos" "X" "Y") (conjuncion 
+            (premisa "amigo" "X") 
+            (premisa "amigo" "Y")
+        ))
+        amigos-disjuntos (inferencia (premisa "amigos" "X" "Y") (disyuncion 
+            (premisa "amigo" "X") 
+            (premisa "amigo" "Y")
+        ))
+    ]
+   (testing "no coincide encabezado"
+        (is (not (verifica? 
+            amigos-conjuntos
+            (premisa "calido" "naranja")
+            siempretrue
+        )))
     )
-)
-
-(deftest dos-miembros-mucha-aridad
-    (testing "Inferencia con dos miembros "
-      (let [
-          inferencia (parsear "siempre(X,Y,Z):-aveces(X,Y);aveces(Y,Z)")
-          espia (nuevoEspia)
-          preguntar (fn [x] true)
-          preguntarS (envuelta espia preguntar "q")
-
-          ]
-          (is (= (nombre inferencia) "siempre"))
-          (is (= (argumentos inferencia) (list "X" "Y" "Z")))
-          (is (= (aridad inferencia) 3))
-          (is (verifica? inferencia (p/parsear "siempre(sol,playa,verano)") preguntarS))
-          (is (= (registro? espia) (list
-            "q" (p/parsear "aveces(sol,playa)")
-            "q" (p/parsear "aveces(playa,verano)")
-            )))
-      )
+    (testing "coincide encabezado, varia repreguntar"
+        (is (not (verifica? 
+            amigos-conjuntos
+            (premisa "amigos" "juan" "jero")
+            siemprefalse
+        )))
+        (is  (verifica? 
+            amigos-conjuntos
+            (premisa "amigos" "juan" "jero")
+            siempretrue
+        ))
     )
-)
-
-(deftest cualquier-cosa
-    (testing "Inferencia con dos miembros "
-      (let [
-          inferencia (parsear "hace bastante (mucho) que no te veo!! cómo estás? (X,Y)")
-          ]
-          (is (= inferencia nil))
-      )
+    (testing "preguntas correctas verifican conjuncion"
+        (is (not (verifica? 
+            amigos-conjuntos
+            (premisa "amigos" "juan" "jero")
+            jerosi-juanno
+        )))
+        (is  (verifica? 
+            amigos-conjuntos
+            (premisa "amigos" "juan" "jero") 
+            jerojuan
+        ))
+    )
+    (testing "preguntas correctas verifican disyunción"
+        (is (verifica? 
+            amigos-disjuntos
+            (premisa "amigos" "juan" "jero")
+            jerosi-juanno
+        ))
+        (is  (verifica?
+            amigos-disjuntos
+            (premisa "amigos" "juan" "jero")
+            jerojuan
+        ))
+    )
+    (testing "preguntas correctas verifican conjuncion aunque mantenga responder"
+        (is (verifica?
+            amigos-conjuntos
+            (premisa "amigos" "jero" "jero")
+            jerosi-juanno
+        ))
+    )
     )
 )

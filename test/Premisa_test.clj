@@ -1,128 +1,88 @@
 (ns Premisa-test
   (:require [clojure.test :refer :all]
     [Premisa :refer :all]
-    [Regla :refer :all]))
+))
 ;;no respeto la regla de prolog, 
 ;;permito que los identificadores sean todo lo que cumple [a-zA-Z0-9_]+
 
-(deftest un-argumento
+(deftest creacion
   (testing "un solo argumento"
-    (let [premisa (parsear "cumple(jeronimo)")]
-        
+    (let [premisa (premisa "cumple" "jeronimo")]
         (is (= (nombre premisa) "cumple"))
         (is (= (argumentos premisa) (list "jeronimo")))
         (is (= (aridad premisa) 1))
     )
   )
-)
-
-(deftest dos-argumentos
-    (testing "dos argumentos"
-      (let [premisa (parsear "cumple(jeronimo,juan)")]
-          
-          (is (= (nombre premisa) "cumple"))
-          (is (= (argumentos premisa) (list "jeronimo" "juan")))
-          (is (= (aridad premisa) 2))
-      )
-    )
-)
-
-(deftest todos-numeros
-    (testing "todos son numeros"
-      (let [premisa (parsear "21(22,23)")]
-          
-          (is (= (nombre premisa) "21"))
-          (is (= (argumentos premisa) (list "22" "23")))
-          (is (= (aridad premisa) 2))
-      )
-    )
-)
-
-(deftest cinco-argumentos
     (testing "5 argumentos"
-      (let [premisa (parsear "soy(1,buen,tipo,0,quilombo)")]
-          
+      (let [premisa (premisa "soy" 1 "buen" "tipo" "0" "?")]
           (is (= (nombre premisa) "soy"))
-          (is (= (argumentos premisa) (list "1" "buen" "tipo" "0" "quilombo")))
+          (is (= (argumentos premisa) (list 1 "buen" "tipo" "0" "?")))
           (is (= (aridad premisa) 5))
       )
     )
 )
 
-(deftest con-espacios
-    (testing "dos argumentos"
-      (let [premisa (parsear "cumple ( jeronimo   , juan) ")]
-          
-          (is (= (nombre premisa) "cumple"))
-          (is (= (argumentos premisa) (list "jeronimo" "juan")))
-          (is (= (aridad premisa) 2))
-      )
+(deftest probar-misma-forma
+    (testing "misma forma"
+        (is (misma-forma? 
+            (premisa "amigos" "luis" "arnaldo") 
+            (premisa "amigos" "mauri" "cristi")
+        ))
+    )
+    (testing "misma forma mayusculas"
+        (is (misma-forma?
+            (premisa "amigos" "luis" "arnaldo") 
+            (premisa "amigos" "X" "Y")
+        ))
+    )
+    (testing "mismo nombre otra aridad"
+        (is (not (misma-forma? 
+            (premisa "amigos" "luis" "arnaldo") 
+            (premisa "amigos" "luis" "arnaldo" "jose" "juan" 7 8 9)
+        )))
+    )
+    (testing "misma aridad otro nombre"
+        (is (not (misma-forma?
+            (premisa "amigos" "luis" "arnaldo") 
+            (premisa "enemigos" "luis" "arnaldo") 
+        )))
     )
 )
 
-(deftest erroneo-sin-parentesis-final
-    (testing "sin parentesis final"
-      (let [premisa (parsear "cumple(jeronimo,juan")]
-          
-          (is (= premisa nil))
-      )
+(deftest traduccion
+    (testing "reemplazo todas funcion"
+        (is (=
+            (premisa "siguiente" 2 3)
+            (traducida (premisa "siguiente" 1 2) inc)
+        ))
     )
-)
-
-(deftest supermal
-    (testing "cualquier cosa"
-      (let [premisa (parsear "como están muchachos, todo bien ustedes?")]
-        (is (= premisa nil))
-      )
+    (testing "reemplazo todas mapa"
+        (is (=
+            (premisa "siguiente" 1 2)
+            (traducida (premisa "siguiente" "1" "2") {"1" 1, "2" 2})
+        ))
     )
-)
 
-(deftest bien-con-simbolos
-    (testing "bien pero con simbolos"
-      (let [premisa (parsear "+3jjk?78(¿¿?,97,pe!rro;)")]
-        (is (= premisa nil))
-      )
+    (testing "reemplazo algunas"
+        (is (=
+            (premisa "siguiente" 1 2 3 4 5 6)
+            (traducida (premisa "siguiente" "1" "2" 3 4 5 6) {"1" 1, "2" 2})
+        ))
     )
+
+    (testing "reemplazo ninguna"
+        (is (=
+            (premisa "siguiente" 10 20 30 40)
+            (traducida (premisa "siguiente" 10 20 30 40) {"1" 1, "2" 2})
+        ))
+    )   
 )
 
-(deftest casi-bien-nombre
-    (testing "el nombre casi bien"
-      (let [premisa (parsear "josé(45,27)")]
-        (is (= premisa nil))
-      )
+(deftest emparejamiento
+    (testing "emparejamiento"
+        (is (=
+            (emparejar-variables (premisa 1 2 3) (premisa 4 5 6))
+            {2 5, 3 6}
+        ))
     )
-)
-
-
-(deftest reemplazo-todos
-    (testing "Reemplazo todos los argumentos"
-        (let [
-            premisa (parsear "asd(a,b,c,d)")
-            premisa-nueva (reemplazar-args (zipmap (list "a" "b" "c" "d") (list 1 2 3 4)) premisa)
-        ]
-            (is (= (argumentos premisa-nueva) (list 1 2 3 4)))
-        )
-    )    
-)
-
-(deftest reemplazo-ninguno
-    (testing "Reemplazo ningún argumento"
-        (let [
-            premisa (parsear "asd(a,b,c,d)")
-            premisa-nueva (reemplazar-args (zipmap (list "x" "y" "z" 3) (list 1 2 3 4)) premisa)
-        ]
-            (is (= (argumentos premisa-nueva) (list "a" "b" "c" "d")))
-        )
-    )    
-)
-
-(deftest reemplazo-algunos
-    (testing "Reemplazo algunos argumentos"
-        (let [
-            premisa (parsear "asd(a,b,c,d)")
-            premisa-nueva (reemplazar-args (zipmap (list "a" "b" "z" 3) (list "1" "2" "3" "4")) premisa)
-        ]
-            (is (= (argumentos premisa-nueva) (list "1" "2" "c" "d")))
-        )
-    )    
 )

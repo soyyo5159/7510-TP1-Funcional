@@ -1,4 +1,4 @@
-(comment
+
 (ns number-database-test
   (:require [clojure.test :refer :all]
             [logical-interpreter :refer :all]))
@@ -31,4 +31,3 @@
   (testing "subtract(two, one, one) should be true"
     (is (= (evaluate-query number-database "subtract(two, one, one)")
            true))))
-)

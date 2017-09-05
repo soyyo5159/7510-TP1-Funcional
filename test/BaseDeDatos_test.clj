@@ -2,214 +2,110 @@
     (:require 
         [clojure.test :refer :all]
         [BaseDeDatos :refer :all]
-        [Premisa :as p]
+        [Premisa :refer :all]
+        [Inferencia :refer :all]
+        [Coleccion :refer :all]
     )
 )
 
-(deftest solo-una-premisa
-    (testing "un string que solo tiene premisas"
-      (let [
-          base (parsearBaseDeDatos "cumple(jeronimo).")
-      ]
-        (is (verifica? base (p/parsear "cumple(jeronimo)")) )
-        (is (not (verifica? base (p/parsear "cumple(juan)"))))
-      )
+(def base
+    (base-de-datos
+        (premisa "gato" "pom")
+        (premisa "gato" "tigre")
+        (premisa "gato" "luigi")
+        (premisa "gato" "groot")
+        (premisa "perro" "leon")
+        (premisa "perro" "guardian")
+        (premisa "perro" "gunther")
+        (premisa "jugueton" "guardian")
+        (premisa "jugueton" "groot")
+        (premisa "jugueton" "juancito")
+        (inferencia (premisa "peludo_jugueton" "X") (conjuncion
+            (premisa "peludo" "X")
+            (premisa "jugueton" "X")
+        ))
+        (inferencia (premisa "gato_jugueton" "X") (conjuncion
+            (premisa "gato" "X")
+            (premisa "jugueton" "X")
+        ))
+        (inferencia (premisa "peludo" "X") (disyuncion
+            (premisa "gato" "X")
+            (premisa "perro" "X")
+        ))
     )
 )
 
-(deftest muchas-premisas
-    (testing "un string que solo tiene premisas"
-      (let [
-          base (parsearBaseDeDatos "
-          cumple(jeronimo).\n
-          cumple(juan).\n\n\n\n\n
-          cum\nple(arquimedes).\n
-          cumple(newton).\n
-          cumple(juan\n\n\n\n\ncito).")
-      ]
-        (is (verifica? base (p/parsear "cumple(jeronimo)")) )
-        (is (verifica? base (p/parsear "cumple(juan)")) )
-        (is (verifica? base (p/parsear "cumple(arquimedes)")) )
-        (is (verifica? base (p/parsear "cumple(newton)")) )
-        (is (verifica? base (p/parsear "cumple(juancito)")) )
-        (is (not (verifica? base (p/parsear "cumple(X)")) ))
-        (is (not (verifica? base (p/parsear "cumple(Juan)")) ))
-        (is (not (verifica? base (p/parsear "cumple(Juan)")) ))
-      )
+(deftest base-encadenada
+    (testing "premisa contenida es si"
+        (is (bd-verifica? base (premisa "gato" "pom")))
+    )
+    (testing "premisa no contenida es no"
+        (is (not (bd-verifica? base (premisa "perro" "pom"))))
+    )
+    (testing "premisa no contenida es no - aridad"
+        (is (not (bd-verifica? base (premisa "gato" "pom" "gunther"))))
+    )
+    (testing "disyuncion basica se cumple"
+        (is (bd-verifica? base (premisa "peludo" "pom")))
+        (is (not (bd-verifica? base (premisa "peludo" "jose"))))
+    )
+    (testing "conjuncion basica se cumple"
+        (is (bd-verifica? base (premisa "gato_jugueton" "groot")))
+        (is (not (bd-verifica? base (premisa "gato_jugueton" "pom"))))
+    )
+    (testing "conjuncion compleja se cumple"
+        (is (bd-verifica? base (premisa "peludo_jugueton" "groot")))
+        (is (not (bd-verifica? base (premisa "peludo_jugueton" "pom"))))
+        (is (not (bd-verifica? base (premisa "peludo_jugueton" "juancito"))))
     )
 )
-
-(deftest inferencias
-    (testing "un string con inferencias"
-      (let [
-          base (parsearBaseDeDatos "
-          cumple(jeronimo).\n
-          cumple(juan).\n\n\n\n\n
-          cum\nple(arquimedes).\n
-          cumple(newton).\n
-          cumple(juan\n\n\n\n\ncito).
-          hace(juan).
-          hace(perez).
-          hace(arquimedes).
-          hara(X):-hace(X).
-          cumplira(X):-cumple(X).
-          bueno(X):-hace(X);cumple(X).
-          buenosbuenosbuenos(X):-bueno(X);cumplira(X).")
-      ]
-      
-      (is (verifica? base (p/parsear "hara(juan)")) )
-      (is (verifica? base (p/parsear "hara(perez)")) )
-      (is (not (verifica? base (p/parsear "hara(Emanuel)")) ) )
-
-      (is (verifica? base (p/parsear "bueno(perez)")) )
-      (is (verifica? base (p/parsear "bueno(juancito)")) )
-      (is (not (verifica? base (p/parsear "bueno(Miguelito)")) ) )
-
-      (is (verifica? base (p/parsear "buenosbuenosbuenos(juancito)")) )
-      (is (not (verifica? base (p/parsear "buenosbuenosbuenos(Mafalda)")) ) )
-      (is (verifica? base (p/parsear "buenosbuenosbuenos(perez)")) )
-      )
+(deftest multiple-aridad
+    (def bd (base-de-datos
+        (premisa "letras" "a")
+        (premisa "letras" "a" "b")
+        (premisa "letras" "a" "b" "c")
+    ))
+    (testing "multiple aridad no causa problemas"
+        (is (bd-verifica? bd (premisa "letras" "a" "b")))
+        (is (not (bd-verifica? bd (premisa "letras" "c"))) )
     )
 )
-
-(deftest inferencias-aridad-mayor
-    (testing "un string con inferencias y mas aridad"
-      (let [
-          base (parsearBaseDeDatos "
-          amigos(andres,berto).
-          amigos(andres,carton).
-          amigos(berto,carton).
-          amigos(juan,jero,japon,jalea,jonas,job,jose,jeremias,julian).
-          amigos(X,Y):-amigos(Y,X).
-          amigos(X,Y,Z):-amigos(X,Y);amigos(Y,Z);amigos(X,Z).")
-      ]
-      
-        (is (verifica? base (p/parsear "amigos(berto,andres)")))
-        (is (verifica? base (p/parsear "amigos(berto,andres,ximena)")))
-        (is (verifica? base (p/parsear "amigos(berto,juan,andres)")))
-      )
+(deftest recursividad
+    (def bd (base-de-datos
+        (premisa "amigos" "juan" "jero")
+        (inferencia (premisa "amigos" "X" "Y") (premisa "amigos" "Y" "X") )
+    ))
+    (testing "inferencia recursiva"
+        (is (bd-verifica? bd (premisa "amigos" "juan" "jero")))
+        (is (bd-verifica? bd (premisa "amigos" "jero" "juan")))
+        (is (not (bd-verifica? bd (premisa "amigos" "pinocho" "jero"))) )
     )
 )
+(deftest consultar-colecciones
+    (def bd (base-de-datos
+        (premisa "a" "x")
+        (premisa "a" "y")
+        (premisa "b" "x")
+        (premisa "b" "y")
+        (inferencia (premisa "c" "X") (conjuncion (premisa "a" "X") (premisa "b" "X")))
+    ))
+    (testing "consultar conjuncion"
+        (is (bd-verifica?  bd (conjuncion
+            (premisa "a" "x") (premisa "b" "x") (premisa "c" "x") 
+        )))
+        (is (not (bd-verifica?  bd (conjuncion
+            (premisa "a" "x") (premisa "b" "x") (premisa "c" "w") 
+        ))))
 
-(deftest pequenio-error-punto
-    (testing "olvido un punto"
-      (let [
-          base (parsearBaseDeDatos "
-          cumple(jeronimo).\n
-          cumple(juan).\n\n\n\n\n
-          cum\nple(arquimedes).\n
-          cumple(newton).\n
-          cumple(juan\n\n\n\n\ncito).
-          hace(juan)
-          hace(perez).
-          hace(arquimedes).
-          hara(X):-hace(X).
-          cumplira(X):-cumple(X).
-          bueno(X):-hace(X);cumple(X).
-          buenosbuenosbuenos(X):-bueno(X);cumplira(X).")
-      ]
-      (is (= base nil))
-      )
-    )
-)
-
-(deftest pequenio-error-parentesis
-    (testing "olvido un parentesis"
-      (let [
-          base (parsearBaseDeDatos "
-          cumple(jeronimo).\n
-          cumple(juan).\n\n\n\n\n
-          cum\nple(arquimedes).\n
-          cumple(newton).\n
-          cumple(juan\n\n\n\n\ncito).
-          hace(juan.
-          hace(perez).
-          hace(arquimedes).
-          hara(X):-hace(X).
-          cumplira(X):-cumple(X).
-          bueno(X):-hace(X);cumple(X).
-          buenosbuenosbuenos(X):-bueno(X);cumplira(X).")
-      ]
-      (is (= base nil))
-      )
-    )
-)
-
-(deftest pequenio-error-dospuntos
-    (testing "olvido un dospuntos"
-      (let [
-          base (parsearBaseDeDatos "
-          cumple(jeronimo).\n
-          cumple(juan).\n\n\n\n\n
-          cum\nple(arquimedes).\n
-          cumple(newton).\n
-          cumple(juan\n\n\n\n\ncito).
-          hace(juan).
-          hace(perez).
-          hace(arquimedes).
-          hara(X)-hace(X).
-          cumplira(X):-cumple(X).
-          bueno(X):-hace(X);cumple(X).
-          buenosbuenosbuenos(X):-bueno(X);cumplira(X).")
-      ]
-      (is (= base nil))
-      )
-    )
-)
-
-(deftest pequenio-error-guion
-    (testing "olvido un guion"
-      (let [
-          base (parsearBaseDeDatos "
-          cumple(jeronimo).\n
-          cumple(juan).\n\n\n\n\n
-          cum\nple(arquimedes).\n
-          cumple(newton).\n
-          cumple(juan\n\n\n\n\ncito).
-          hace(juan).
-          hace(perez).
-          hace(arquimedes).
-          hara(X):hace(X).
-          cumplira(X):-cumple(X).
-          bueno(X):-hace(X);cumple(X).
-          buenosbuenosbuenos(X):-bueno(X);cumplira(X).")
-      ]
-      (is (= base nil))
-      )
-    )
-)
-
-(deftest pequenio-error-ptoycoma
-    (testing "olvido un pto y coma"
-      (let [
-          base (parsearBaseDeDatos "
-          cumple(jeronimo).\n
-          cumple(juan).\n\n\n\n\n
-          cum\nple(arquimedes).\n
-          cumple(newton).\n
-          cumple(juan\n\n\n\n\ncito).
-          hace(juan).
-          hace(perez).
-          hace(arquimedes).
-          hara(X):-hace(X).
-          cumplira(X):-cumple(X).
-          bueno(X):-hace(X)cumple(X).
-          buenosbuenosbuenos(X):-bueno(X);cumplira(X).")
-      ]
-      (is (= base nil))
-      )
-    )
-)
-
-(deftest cualquier-cosa
-    (testing "olvido un pto y coma"
-      (let [
-          base (parsearBaseDeDatos "
-          Hace mucho(mucho). mucho tiempo
-          que no me dedico a poner bien(y,q):-hola(y).p[a'arrafos a las cosas \n\n\n\n\n
-          Porque\n aunque quisiera no podria. hola(x,y).chau(p,s).")
-      ]
-      (is (= base nil))
-      )
+        (is (bd-verifica?  bd (disyuncion
+            (premisa "a" "x") (premisa "b" "x") (premisa "c" "x") 
+        )))
+        (is  (bd-verifica?  bd (disyuncion
+            (premisa "a" "x") (premisa "b" "x") (premisa "c" "w") 
+        )))
+        (is (not (bd-verifica?  bd (disyuncion
+            (premisa "a" "w") (premisa "b" "w") (premisa "c" "w") 
+        ))))
+        
     )
 )
