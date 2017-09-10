@@ -17,7 +17,7 @@
 )
 (defn- intercambiar-si-posible [mapa elem] (let [res (mapa elem)] (if (nil? res) elem res)) )
 
-(defrecord ^:private RecordPremisa [mi-nombre mis-argumentos] 
+(defrecord RecordPremisa [mi-nombre mis-argumentos] 
     Cumplible
     (cumple? [yo fun] (fun yo))
     Verificador

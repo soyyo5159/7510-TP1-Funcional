@@ -22,6 +22,7 @@
 )
 
 (defn- coleccion-segura [combinador & cumplibles]
+    
     {:pre [
         (some? cumplibles)
         (not (empty? cumplibles))
