@@ -16,6 +16,7 @@
                 traducir-repreguntar (fn [p] (repreguntar (traducida p intercambio)))
             ]
                 (cumple? coleccion traducir-repreguntar)
+                ;;La coleccion hija debe cumplir la repregunta!
             )
             false
         )
@@ -28,5 +29,5 @@
         (satisfies? Premisa premisa-encabezado) 
         (satisfies? Cumplible coleccion)
     ]}
-    (RecordInferencia. premisa-encabezado coleccion)
+    (->RecordInferencia premisa-encabezado coleccion)
 )

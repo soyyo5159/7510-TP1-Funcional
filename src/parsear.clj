@@ -12,14 +12,15 @@
     )
 )
 
-(defn parsear [] nil)
+(defn parsear [] "esto permite llamados recursivos" nil)
 
-(defn- parser-coleccion
-    
-    [forma separador funcion s]
-    (if (re-matches forma s)
+
+(defn- parsear-separando [reconocer separar funcion s]
+    "Parsea un string a partir del constructor del 
+    ente que representa y funciones que permiten separar sus partes"
+    (if (reconocer s);(re-matches forma s)
         (let [
-            separado (str/split s separador)
+            separado (separar s)
             parseados (map parsear separado)
         ]
             (apply fmap funcion parseados)
@@ -27,11 +28,17 @@
         (error (str "no se puede parsear porque no tiene la forma correcta:" s) )
     )
 )
-(defn- crear-parser [reconocimiento separador funcion] 
-    (partial parser-coleccion 
-        (re-pattern reconocimiento) 
-        (re-pattern separador) 
-        funcion
+(defn- parser [reconocer separar funcion]
+    (partial parsear-separando reconocer separar funcion)
+    
+)
+
+(defn- parser-regex [reconocimiento separador funcion]
+    (let [
+        reconocer (fn [s] (re-matches (re-pattern reconocimiento) s) )
+        separar (fn [s] (str/split s (re-pattern separador)))
+    ]
+        (parser reconocer separar funcion)
     )
 )
 
@@ -41,40 +48,38 @@
         (error (str "no es un token valido" s))
     )
 )
-
-(defn parsear-conjuncion [s]
-    (if (re-matches #".*\),.*" s)
-        (let [
-            partes (str/split s #"\),")
-            partes-completas (map (fn [parte] (str parte ")")) partes)
-            parseados (map parsear partes-completas)
-        ]
-            (apply fmap conjuncion parseados)
-        )
-        (error (str "no es una conjuncion: " s))
+(defn- separar-conjunciones [s]
+    (map 
+        (fn [s] (str s ")")) 
+        (str/split s #"\),")
     )
 )
 
-(def ^{:private true} parsers (list
-    (crear-parser "(.*\\.)+" "\\." base-de-datos )
-    (crear-parser ".*:-.*" ":-" inferencia)
-    ;;la inferencia tiene variables que tienen que empezar con mayuscula, 
-    ;;acá arriba HABRÍA QUE AGREGARLO
+(def ^:private  parser-conjuncion
+    (parser
+        (fn [s] (re-matches #".*\),.*" s) )
+        separar-conjunciones
+        conjuncion
+    )
+)
 
-    (crear-parser ".*;.*" ";" disyuncion )
-    parsear-conjuncion
+(def ^:private parsers (list
+    (parser-regex "(.*\\.)+" "\\." base-de-datos )
+    (parser-regex ".*:-.*" ":-" inferencia)
+    ;;no se verifica que las variables de las inferencias tengan mayuscula
 
-    (crear-parser "^.+\\(.+\\)$" "[,\\(\\)]" premisa)
+    (parser-regex ".*;.*" ";" disyuncion )
+    parser-conjuncion
+
+    (parser-regex "^.+\\(.+\\)$" "[,\\(\\)]" premisa)
     validar-token
 ))
 
 (defn parsear [s]
-    "Parsea un string. Descubre qué es."
-    (comment
-    (let [limpio (limpiar s)]
-        (some (fn [p] (let [res (p limpio) ] (if (error? res) nil res)) ) parsers)
-    )
-    )
+    "Parsea un string. Descubre qué es.
+    Devuelve el error del componente más pequeño que tenga error,
+    o el mayor componente posible. El 'tamaño' de un 'componente' 
+    está dado por su posición en la lista de parsers"
     
     (let [limpio (str/replace s (re-pattern "\\s") "")
         resultado (loop [ probar (first parsers) resto (rest parsers) ]

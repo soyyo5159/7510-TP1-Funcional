@@ -37,26 +37,26 @@
 
 (deftest base-encadenada
     (testing "premisa contenida es si"
-        (is (bd-verifica? base (premisa "gato" "pom")))
+        (is (verifica? base (premisa "gato" "pom")))
     )
     (testing "premisa no contenida es no"
-        (is (not (bd-verifica? base (premisa "perro" "pom"))))
+        (is (not (verifica? base (premisa "perro" "pom"))))
     )
     (testing "premisa no contenida es no - aridad"
-        (is (not (bd-verifica? base (premisa "gato" "pom" "gunther"))))
+        (is (not (verifica? base (premisa "gato" "pom" "gunther"))))
     )
     (testing "disyuncion basica se cumple"
-        (is (bd-verifica? base (premisa "peludo" "pom")))
-        (is (not (bd-verifica? base (premisa "peludo" "jose"))))
+        (is (verifica? base (premisa "peludo" "pom")))
+        (is (not (verifica? base (premisa "peludo" "jose"))))
     )
     (testing "conjuncion basica se cumple"
-        (is (bd-verifica? base (premisa "gato_jugueton" "groot")))
-        (is (not (bd-verifica? base (premisa "gato_jugueton" "pom"))))
+        (is (verifica? base (premisa "gato_jugueton" "groot")))
+        (is (not (verifica? base (premisa "gato_jugueton" "pom"))))
     )
     (testing "conjuncion compleja se cumple"
-        (is (bd-verifica? base (premisa "peludo_jugueton" "groot")))
-        (is (not (bd-verifica? base (premisa "peludo_jugueton" "pom"))))
-        (is (not (bd-verifica? base (premisa "peludo_jugueton" "juancito"))))
+        (is (verifica? base (premisa "peludo_jugueton" "groot")))
+        (is (not (verifica? base (premisa "peludo_jugueton" "pom"))))
+        (is (not (verifica? base (premisa "peludo_jugueton" "juancito"))))
     )
 )
 (deftest multiple-aridad
@@ -66,8 +66,8 @@
         (premisa "letras" "a" "b" "c")
     ))
     (testing "multiple aridad no causa problemas"
-        (is (bd-verifica? bd (premisa "letras" "a" "b")))
-        (is (not (bd-verifica? bd (premisa "letras" "c"))) )
+        (is (verifica? bd (premisa "letras" "a" "b")))
+        (is (not (verifica? bd (premisa "letras" "c"))) )
     )
 )
 (deftest recursividad
@@ -76,9 +76,9 @@
         (inferencia (premisa "amigos" "X" "Y") (premisa "amigos" "Y" "X") )
     ))
     (testing "inferencia recursiva"
-        (is (bd-verifica? bd (premisa "amigos" "juan" "jero")))
-        (is (bd-verifica? bd (premisa "amigos" "jero" "juan")))
-        (is (not (bd-verifica? bd (premisa "amigos" "pinocho" "jero"))) )
+        (is (verifica? bd (premisa "amigos" "juan" "jero")))
+        (is (verifica? bd (premisa "amigos" "jero" "juan")))
+        (is (not (verifica? bd (premisa "amigos" "pinocho" "jero"))) )
     )
 )
 (deftest consultar-colecciones
@@ -90,20 +90,20 @@
         (inferencia (premisa "c" "X") (conjuncion (premisa "a" "X") (premisa "b" "X")))
     ))
     (testing "consultar conjuncion"
-        (is (bd-verifica?  bd (conjuncion
+        (is (verifica?  bd (conjuncion
             (premisa "a" "x") (premisa "b" "x") (premisa "c" "x") 
         )))
-        (is (not (bd-verifica?  bd (conjuncion
+        (is (not (verifica?  bd (conjuncion
             (premisa "a" "x") (premisa "b" "x") (premisa "c" "w") 
         ))))
 
-        (is (bd-verifica?  bd (disyuncion
+        (is (verifica?  bd (disyuncion
             (premisa "a" "x") (premisa "b" "x") (premisa "c" "x") 
         )))
-        (is  (bd-verifica?  bd (disyuncion
+        (is  (verifica?  bd (disyuncion
             (premisa "a" "x") (premisa "b" "x") (premisa "c" "w") 
         )))
-        (is (not (bd-verifica?  bd (disyuncion
+        (is (not (verifica?  bd (disyuncion
             (premisa "a" "w") (premisa "b" "w") (premisa "c" "w") 
         ))))
         

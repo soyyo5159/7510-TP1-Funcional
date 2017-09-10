@@ -16,9 +16,10 @@
     res (cond
       (error? p-db) nil
       (error? p-q) nil
-      :else (fmap bd-verifica? p-db p-q)
+      :else (fmap verifica? p-db p-q)
     )
   ]
-    (if (error? res) nil res);; el error tiene un mensaje de error :(
+    (if (error? res) nil res)
+    ; el error tiene un mensaje de error, pero debo sacarselo :(
   )
 )

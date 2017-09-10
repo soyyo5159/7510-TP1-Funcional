@@ -29,7 +29,7 @@
         (every? (partial satisfies? Cumplible) cumplibles)
         ]
     }
-    (RecordColeccion. combinador cumplibles)    
+    (->RecordColeccion combinador cumplibles)    
     
 )
 

@@ -1,5 +1,9 @@
 (ns Error)
 ;;inspirado en monads
+
+;El protocolo sólo lo cumplen aquellas cosas que son errores: 
+;RecordMError y nil. El resto no es un error.
+
 (defprotocol ^:private MError
     (mensaje? [yo])
 )
@@ -12,18 +16,22 @@
         :mensaje? (fn [yo] "sin mensaje")
     }
 )
+
+;;A cualquier cosa se le puede preguntar si es un error, con lo cual
+;;esta función no corresponde al protocolo anterior
 (defmulti error? class)
 (defmethod error? :default [yo] false)
 (defmethod error? RecordMError [yo] true)
 (defmethod error? nil [yo] true)
-;;Le podes preguntar a cualquier cosa si es un error, pero no todo tiene un mensaje
-;;nil es un error malo
 
 (defn- error-o-false [x] (if (error? x) x false) )
 
-(defn error [x] (RecordMError. x))
+(defn error [x] (->RecordMError x))
 
-(defn fmap [funcion & argumentos] ;;devuelve el primer error, o resultado que corresponde
+(defn fmap [funcion & argumentos] 
+    "Si algun parametro es un error, lo devuelve
+    Si ningun parámetro es un error, ejecuta la función.
+    Pudiendo devolver un error o un valor"
     (if-let [
             error (some error-o-false argumentos)
         ]

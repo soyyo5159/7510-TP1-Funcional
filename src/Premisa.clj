@@ -2,7 +2,7 @@
     [Verificador :refer :all]
     [Cumplible :refer :all]
 ))
-;;requiere verifica y Verificable
+
 (defprotocol Premisa
     (misma-forma? [yo otra])
     (nombre [yo])
@@ -17,7 +17,7 @@
 )
 (defn- intercambiar-si-posible [mapa elem] (let [res (mapa elem)] (if (nil? res) elem res)) )
 
-(defrecord RecordPremisa [mi-nombre mis-argumentos] 
+(defrecord ^:private RecordPremisa [mi-nombre mis-argumentos] 
     Cumplible
     (cumple? [yo fun] (fun yo))
     Verificador
