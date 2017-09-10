@@ -45,5 +45,5 @@
 
 (defn premisa 
     [nombre & argumentos] 
-    (RecordPremisa. nombre (if (nil? argumentos) (list) argumentos))
+    (->RecordPremisa nombre (if (nil? argumentos) (list) argumentos))
 )
